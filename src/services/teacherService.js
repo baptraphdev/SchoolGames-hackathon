@@ -1,5 +1,14 @@
 const { getFirestoreInstance } = require('../config/firebase');
-const { serverTimestamp } = require('firebase/firestore');
+const { 
+  collection, 
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp 
+} = require('firebase/firestore');
 const { formatTeacher } = require('../models/Teacher');
 const { ApiError } = require('../middleware/errorHandler');
 const { v4: uuidv4 } = require('uuid');
@@ -7,7 +16,7 @@ const { v4: uuidv4 } = require('uuid');
 // Reference to the Firestore collection
 const teachersCollection = async () => {
   const db = await getFirestoreInstance();
-  return db.collection('teachers');
+  return collection(db, 'teachers');
 };
 
 /**
@@ -26,11 +35,11 @@ const createTeacher = async (teacherData) => {
     };
 
     // Create a new document with auto-generated ID
-    const collection = await teachersCollection();
-    const docRef = await collection.add(newTeacher);
+    const collectionRef = await teachersCollection();
+    const docRef = await addDoc(collectionRef, newTeacher);
     
     // Get the newly created document
-    const teacherDoc = await docRef.get();
+    const teacherDoc = await getDoc(docRef);
     
     return formatTeacher(teacherDoc);
   } catch (error) {
@@ -45,8 +54,8 @@ const createTeacher = async (teacherData) => {
  */
 const getAllTeachers = async () => {
   try {
-    const collection = await teachersCollection();
-    const snapshot = await collection.get();
+    const collectionRef = await teachersCollection();
+    const snapshot = await getDocs(collectionRef);
     
     if (snapshot.empty) {
       return [];
@@ -66,10 +75,11 @@ const getAllTeachers = async () => {
  */
 const getTeacherById = async (id) => {
   try {
-    const collection = await teachersCollection();
-    const teacherDoc = await collection.doc(id).get();
+    const collectionRef = await teachersCollection();
+    const teacherRef = doc(collectionRef, id);
+    const teacherDoc = await getDoc(teacherRef);
     
-    if (!teacherDoc.exists) {
+    if (!teacherDoc.exists()) {
       throw new ApiError(`Teacher with ID ${id} not found`, 404);
     }
     
@@ -89,11 +99,11 @@ const getTeacherById = async (id) => {
  */
 const updateTeacher = async (id, updateData) => {
   try {
-    const collection = await teachersCollection();
-    const teacherRef = collection.doc(id);
-    const teacherDoc = await teacherRef.get();
+    const collectionRef = await teachersCollection();
+    const teacherRef = doc(collectionRef, id);
+    const teacherDoc = await getDoc(teacherRef);
     
-    if (!teacherDoc.exists) {
+    if (!teacherDoc.exists()) {
       throw new ApiError(`Teacher with ID ${id} not found`, 404);
     }
     
@@ -101,10 +111,10 @@ const updateTeacher = async (id, updateData) => {
     updateData.updatedAt = serverTimestamp();
     
     // Update the document
-    await teacherRef.update(updateData);
+    await updateDoc(teacherRef, updateData);
     
     // Get the updated document
-    const updatedTeacherDoc = await teacherRef.get();
+    const updatedTeacherDoc = await getDoc(teacherRef);
     
     return formatTeacher(updatedTeacherDoc);
   } catch (error) {
@@ -121,16 +131,16 @@ const updateTeacher = async (id, updateData) => {
  */
 const deleteTeacher = async (id) => {
   try {
-    const collection = await teachersCollection();
-    const teacherRef = collection.doc(id);
-    const teacherDoc = await teacherRef.get();
+    const collectionRef = await teachersCollection();
+    const teacherRef = doc(collectionRef, id);
+    const teacherDoc = await getDoc(teacherRef);
     
-    if (!teacherDoc.exists) {
+    if (!teacherDoc.exists()) {
       throw new ApiError(`Teacher with ID ${id} not found`, 404);
     }
     
     // Delete the document
-    await teacherRef.delete();
+    await deleteDoc(teacherRef);
     
     return true;
   } catch (error) {

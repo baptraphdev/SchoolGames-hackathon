@@ -1,5 +1,14 @@
 const { getFirestoreInstance } = require('../config/firebase');
-const { serverTimestamp } = require('firebase/firestore');
+const { 
+  collection, 
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  serverTimestamp 
+} = require('firebase/firestore');
 const { formatStudent } = require('../models/Student');
 const { ApiError } = require('../middleware/errorHandler');
 const { v4: uuidv4 } = require('uuid');
@@ -7,7 +16,7 @@ const { v4: uuidv4 } = require('uuid');
 // Reference to the Firestore collection
 const studentsCollection = async () => {
   const db = await getFirestoreInstance();
-  return db.collection('students');
+  return collection(db, 'students');
 };
 
 /**
@@ -26,11 +35,11 @@ const createStudent = async (studentData) => {
     };
 
     // Create a new document with auto-generated ID
-    const collection = await studentsCollection();
-    const docRef = await collection.add(newStudent);
+    const collectionRef = await studentsCollection();
+    const docRef = await addDoc(collectionRef, newStudent);
     
     // Get the newly created document
-    const studentDoc = await docRef.get();
+    const studentDoc = await getDoc(docRef);
     
     return formatStudent(studentDoc);
   } catch (error) {
@@ -45,8 +54,8 @@ const createStudent = async (studentData) => {
  */
 const getAllStudents = async () => {
   try {
-    const collection = await studentsCollection();
-    const snapshot = await collection.get();
+    const collectionRef = await studentsCollection();
+    const snapshot = await getDocs(collectionRef);
     
     if (snapshot.empty) {
       return [];
@@ -66,10 +75,11 @@ const getAllStudents = async () => {
  */
 const getStudentById = async (id) => {
   try {
-    const collection = await studentsCollection();
-    const studentDoc = await collection.doc(id).get();
+    const collectionRef = await studentsCollection();
+    const studentRef = doc(collectionRef, id);
+    const studentDoc = await getDoc(studentRef);
     
-    if (!studentDoc.exists) {
+    if (!studentDoc.exists()) {
       throw new ApiError(`Student with ID ${id} not found`, 404);
     }
     
@@ -89,11 +99,11 @@ const getStudentById = async (id) => {
  */
 const updateStudent = async (id, updateData) => {
   try {
-    const collection = await studentsCollection();
-    const studentRef = collection.doc(id);
-    const studentDoc = await studentRef.get();
+    const collectionRef = await studentsCollection();
+    const studentRef = doc(collectionRef, id);
+    const studentDoc = await getDoc(studentRef);
     
-    if (!studentDoc.exists) {
+    if (!studentDoc.exists()) {
       throw new ApiError(`Student with ID ${id} not found`, 404);
     }
     
@@ -101,10 +111,10 @@ const updateStudent = async (id, updateData) => {
     updateData.updatedAt = serverTimestamp();
     
     // Update the document
-    await studentRef.update(updateData);
+    await updateDoc(studentRef, updateData);
     
     // Get the updated document
-    const updatedStudentDoc = await studentRef.get();
+    const updatedStudentDoc = await getDoc(studentRef);
     
     return formatStudent(updatedStudentDoc);
   } catch (error) {
@@ -121,16 +131,16 @@ const updateStudent = async (id, updateData) => {
  */
 const deleteStudent = async (id) => {
   try {
-    const collection = await studentsCollection();
-    const studentRef = collection.doc(id);
-    const studentDoc = await studentRef.get();
+    const collectionRef = await studentsCollection();
+    const studentRef = doc(collectionRef, id);
+    const studentDoc = await getDoc(studentRef);
     
-    if (!studentDoc.exists) {
+    if (!studentDoc.exists()) {
       throw new ApiError(`Student with ID ${id} not found`, 404);
     }
     
     // Delete the document
-    await studentRef.delete();
+    await deleteDoc(studentRef);
     
     return true;
   } catch (error) {
