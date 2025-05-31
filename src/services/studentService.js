@@ -17,7 +17,7 @@ const studentsCollection = async () => {
 const createStudent = async (studentData) => {
   try {
     // Add timestamps
-    const timestamp = admin.firestore.FieldValue.serverTimestamp();
+    const timestamp = firestore.FieldValue.serverTimestamp();
     const newStudent = {
       ...studentData,
       createdAt: timestamp,
