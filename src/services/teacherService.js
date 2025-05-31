@@ -17,7 +17,7 @@ const teachersCollection = async () => {
 const createTeacher = async (teacherData) => {
   try {
     // Add timestamps
-    const timestamp = admin.firestore.FieldValue.serverTimestamp();
+    const timestamp = firestore.FieldValue.serverTimestamp();
     const newTeacher = {
       ...teacherData,
       createdAt: timestamp,
