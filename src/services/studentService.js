@@ -2,10 +2,13 @@ const { getFirestore } = require('../config/firebase');
 const { formatStudent } = require('../models/Student');
 const { ApiError } = require('../middleware/errorHandler');
 const { v4: uuidv4 } = require('uuid');
-const admin = require('firebase-admin'); // <-- Ajouté ici
+const admin = require('firebase-admin');
 
 // Reference to the Firestore collection
-const studentsCollection = () => getFirestore().collection('students');
+const studentsCollection = async () => {
+  const db = await getFirestore();
+  return db.collection('students');
+};
 
 /**
  * Create a new student
@@ -23,7 +26,8 @@ const createStudent = async (studentData) => {
     };
 
     // Create a new document with auto-generated ID
-    const docRef = await studentsCollection().add(newStudent);
+    const collection = await studentsCollection();
+    const docRef = await collection.add(newStudent);
     
     // Get the newly created document
     const studentDoc = await docRef.get();
@@ -41,7 +45,8 @@ const createStudent = async (studentData) => {
  */
 const getAllStudents = async () => {
   try {
-    const snapshot = await studentsCollection().get();
+    const collection = await studentsCollection();
+    const snapshot = await collection.get();
     
     if (snapshot.empty) {
       return [];
@@ -61,7 +66,8 @@ const getAllStudents = async () => {
  */
 const getStudentById = async (id) => {
   try {
-    const studentDoc = await studentsCollection().doc(id).get();
+    const collection = await studentsCollection();
+    const studentDoc = await collection.doc(id).get();
     
     if (!studentDoc.exists) {
       throw new ApiError(`Student with ID ${id} not found`, 404);
@@ -83,7 +89,8 @@ const getStudentById = async (id) => {
  */
 const updateStudent = async (id, updateData) => {
   try {
-    const studentRef = studentsCollection().doc(id);
+    const collection = await studentsCollection();
+    const studentRef = collection.doc(id);
     const studentDoc = await studentRef.get();
     
     if (!studentDoc.exists) {
@@ -114,7 +121,8 @@ const updateStudent = async (id, updateData) => {
  */
 const deleteStudent = async (id) => {
   try {
-    const studentRef = studentsCollection().doc(id);
+    const collection = await studentsCollection();
+    const studentRef = collection.doc(id);
     const studentDoc = await studentRef.get();
     
     if (!studentDoc.exists) {

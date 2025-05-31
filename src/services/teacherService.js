@@ -5,7 +5,10 @@ const { v4: uuidv4 } = require('uuid');
 const admin = require('firebase-admin');
 
 // Reference to the Firestore collection
-const teachersCollection = () => getFirestore().collection('teachers');
+const teachersCollection = async () => {
+  const db = await getFirestore();
+  return db.collection('teachers');
+};
 
 /**
  * Create a new teacher
@@ -23,7 +26,8 @@ const createTeacher = async (teacherData) => {
     };
 
     // Create a new document with auto-generated ID
-    const docRef = await teachersCollection().add(newTeacher);
+    const collection = await teachersCollection();
+    const docRef = await collection.add(newTeacher);
     
     // Get the newly created document
     const teacherDoc = await docRef.get();
@@ -41,7 +45,8 @@ const createTeacher = async (teacherData) => {
  */
 const getAllTeachers = async () => {
   try {
-    const snapshot = await teachersCollection().get();
+    const collection = await teachersCollection();
+    const snapshot = await collection.get();
     
     if (snapshot.empty) {
       return [];
@@ -61,7 +66,8 @@ const getAllTeachers = async () => {
  */
 const getTeacherById = async (id) => {
   try {
-    const teacherDoc = await teachersCollection().doc(id).get();
+    const collection = await teachersCollection();
+    const teacherDoc = await collection.doc(id).get();
     
     if (!teacherDoc.exists) {
       throw new ApiError(`Teacher with ID ${id} not found`, 404);
@@ -83,7 +89,8 @@ const getTeacherById = async (id) => {
  */
 const updateTeacher = async (id, updateData) => {
   try {
-    const teacherRef = teachersCollection().doc(id);
+    const collection = await teachersCollection();
+    const teacherRef = collection.doc(id);
     const teacherDoc = await teacherRef.get();
     
     if (!teacherDoc.exists) {
@@ -114,7 +121,8 @@ const updateTeacher = async (id, updateData) => {
  */
 const deleteTeacher = async (id) => {
   try {
-    const teacherRef = teachersCollection().doc(id);
+    const collection = await teachersCollection();
+    const teacherRef = collection.doc(id);
     const teacherDoc = await teacherRef.get();
     
     if (!teacherDoc.exists) {
