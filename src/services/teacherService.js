@@ -1,5 +1,5 @@
 const { getFirestoreInstance } = require('../config/firebase');
-const { FieldValue } = require('firebase/firestore');
+const { serverTimestamp } = require('firebase/firestore');
 const { formatTeacher } = require('../models/Teacher');
 const { ApiError } = require('../middleware/errorHandler');
 const { v4: uuidv4 } = require('uuid');
@@ -18,7 +18,7 @@ const teachersCollection = async () => {
 const createTeacher = async (teacherData) => {
   try {
     // Add timestamps
-    const timestamp = FieldValue.serverTimestamp();
+    const timestamp = serverTimestamp();
     const newTeacher = {
       ...teacherData,
       createdAt: timestamp,
@@ -98,7 +98,7 @@ const updateTeacher = async (id, updateData) => {
     }
     
     // Add timestamp
-    updateData.updatedAt = FieldValue.serverTimestamp();
+    updateData.updatedAt = serverTimestamp();
     
     // Update the document
     await teacherRef.update(updateData);
