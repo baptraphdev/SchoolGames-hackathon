@@ -5,80 +5,80 @@ dotenv.config();
 
 let firebaseApp;
 
-const initializeFirebase = () => {
-  if (!firebaseApp) {
-    // Validate required environment variables
-    const requiredEnvVars = [
-      'FIREBASE_PROJECT_ID',
-      'FIREBASE_PRIVATE_KEY',
-      'FIREBASE_CLIENT_EMAIL',
-      'FIREBASE_DATABASE_URL',
-      'FIREBASE_STORAGE_BUCKET'
-    ];
+/**
+ * Initialiser Firebase avec gestion de reconnexion
+ */
+const initializeFirebase = async () => {
+  if (firebaseApp) {
+    return firebaseApp;
+  }
 
-    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
-    if (missingEnvVars.length > 0) {
-      throw new Error(`Missing required Firebase environment variables: ${missingEnvVars.join(', ')}`);
-    }
+  const requiredEnvVars = [
+    'FIREBASE_PROJECT_ID',
+    'FIREBASE_PRIVATE_KEY',
+    'FIREBASE_CLIENT_EMAIL',
+    'FIREBASE_DATABASE_URL',
+    'FIREBASE_STORAGE_BUCKET'
+  ];
 
+  const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+  if (missingEnvVars.length > 0) {
+    throw new Error(`Variables d'environnement manquantes : ${missingEnvVars.join(', ')}`);
+  }
+
+  // Préparer la clé privée (corriger le format)
+  let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (privateKey) {
+    // Si la clé est stockée avec des \" ou des \\n, traiter ici
+    privateKey = privateKey.replace(/\\n/g, '\n');
+  } else {
+    throw new Error('FIREBASE_PRIVATE_KEY est manquante ou mal formatée');
+  }
+
+  const credentials = {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    privateKey: privateKey,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  };
+
+  // Fonction de reconnexion avec retries
+  const initializeWithRetry = async (retries = 3, delay = 2000) => {
     try {
-      // Handle the private key properly, ensuring correct format
-      const privateKey = process.env.FIREBASE_PRIVATE_KEY
-        ? JSON.parse(process.env.FIREBASE_PRIVATE_KEY)
-        : undefined;
-
-      if (!privateKey) {
-        throw new Error('Invalid FIREBASE_PRIVATE_KEY format');
+      if (!firebaseApp) {
+        firebaseApp = admin.initializeApp({
+          credential: admin.credential.cert(credentials),
+          databaseURL: process.env.FIREBASE_DATABASE_URL,
+          storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+        });
       }
 
-      const credentials = {
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        privateKey: privateKey,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      };
+      // Tester la connexion Firestore
+      const db = admin.firestore();
+      await db.collection('_test_').limit(1).get();
 
-      // Initialize Firebase with retry logic
-      const initializeWithRetry = async (retries = 3, delay = 2000) => {
-        try {
-          if (!firebaseApp) {
-            firebaseApp = admin.initializeApp({
-              credential: admin.credential.cert(credentials),
-              databaseURL: process.env.FIREBASE_DATABASE_URL,
-              storageBucket: process.env.FIREBASE_STORAGE_BUCKET
-            });
-          }
-
-          // Test the connection
-          const db = admin.firestore();
-          await db.collection('_test_').get();
-          console.log('Firebase connection established successfully');
-          return firebaseApp;
-        } catch (error) {
-          if (retries > 0) {
-            console.log(`Retrying Firebase connection in ${delay}ms... (${retries} attempts remaining)`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return initializeWithRetry(retries - 1, delay * 1.5);
-          }
-          console.error('Failed to connect to Firebase after multiple attempts:', error);
-          firebaseApp = null;
-          throw error;
-        }
-      };
-
-      return initializeWithRetry();
+      console.log('Connexion Firebase établie avec succès.');
+      return firebaseApp;
     } catch (error) {
-      console.error('Error initializing Firebase:', error);
-      throw error;
+      console.error(`Erreur lors de la tentative de connexion Firebase: ${error.message}`);
+      if (retries > 0) {
+        console.log(`Reconnexion dans ${delay}ms... (${retries} tentatives restantes)`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return initializeWithRetry(retries - 1, delay * 1.5);
+      } else {
+        firebaseApp = null;
+        throw error;
+      }
     }
-  }
-  
-  return Promise.resolve(firebaseApp);
+  };
+
+  return initializeWithRetry();
 };
 
+/**
+ * Récupérer Firestore, en assurant que Firebase est initialisé
+ */
 const getFirestore = async () => {
-  if (!firebaseApp) {
-    await initializeFirebase();
-  }
+  await initializeFirebase();
   return admin.firestore();
 };
 
