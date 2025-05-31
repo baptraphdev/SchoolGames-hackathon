@@ -7,41 +7,58 @@ let firebaseApp;
 
 const initializeFirebase = () => {
   if (!firebaseApp) {
-    // For production, use environment variables
-    if (process.env.NODE_ENV === 'production') {
+    // Validate required environment variables
+    const requiredEnvVars = [
+      'FIREBASE_PROJECT_ID',
+      'FIREBASE_PRIVATE_KEY',
+      'FIREBASE_CLIENT_EMAIL',
+      'FIREBASE_DATABASE_URL',
+      'FIREBASE_STORAGE_BUCKET'
+    ];
+
+    const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    if (missingEnvVars.length > 0) {
+      throw new Error(`Missing required Firebase environment variables: ${missingEnvVars.join(', ')}`);
+    }
+
+    try {
+      // Initialize Firebase with proper error handling
+      const credentials = {
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      };
+
       firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        }),
+        credential: admin.credential.cert(credentials),
         databaseURL: process.env.FIREBASE_DATABASE_URL,
         storageBucket: process.env.FIREBASE_STORAGE_BUCKET
       });
-    } else {
-      // For development
-      if (!process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_CLIENT_EMAIL) {
-        throw new Error('Missing Firebase credentials. Please check your .env file includes FIREBASE_PRIVATE_KEY and FIREBASE_CLIENT_EMAIL');
-      }
-      
-      firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        }),
-        databaseURL: process.env.FIREBASE_DATABASE_URL,
-        storageBucket: process.env.FIREBASE_STORAGE_BUCKET
-      });
+
+      // Test the connection
+      const db = admin.firestore();
+      return db.collection('_test_').get()
+        .then(() => {
+          console.log('Firebase connection established successfully');
+          return firebaseApp;
+        })
+        .catch((error) => {
+          console.error('Failed to connect to Firebase:', error);
+          firebaseApp = null; // Reset the app instance so we can try to initialize again
+          throw error;
+        });
+    } catch (error) {
+      console.error('Error initializing Firebase:', error);
+      throw error;
     }
   }
   
-  return firebaseApp;
+  return Promise.resolve(firebaseApp);
 };
 
-const getFirestore = () => {
+const getFirestore = async () => {
   if (!firebaseApp) {
-    initializeFirebase();
+    await initializeFirebase();
   }
   return admin.firestore();
 };
