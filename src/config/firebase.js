@@ -15,34 +15,20 @@ const initializeFirebase = () => {
           privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
           clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
         }),
+        databaseURL: process.env.FIREBASE_DATABASE_URL,
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET
       });
     } else {
-      // For development, use service account or emulator
-      try {
-        // First try with service account if available
-        if (process.env.FIREBASE_PROJECT_ID) {
-          firebaseApp = admin.initializeApp({
-            credential: admin.credential.cert({
-              projectId: process.env.FIREBASE_PROJECT_ID,
-              privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-              clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            }),
-          });
-        } else {
-          // Fallback to default app without credentials (for emulator)
-          firebaseApp = admin.initializeApp();
-          // Set Firestore emulator host if needed
-          if (process.env.FIRESTORE_EMULATOR_HOST) {
-            admin.firestore().settings({
-              host: process.env.FIRESTORE_EMULATOR_HOST,
-              ssl: false,
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Firebase initialization error:', error);
-        process.exit(1);
-      }
+      // For development
+      firebaseApp = admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || 'dummy-key',
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL || `firebase-adminsdk-${process.env.FIREBASE_PROJECT_ID}@${process.env.FIREBASE_PROJECT_ID}.iam.gserviceaccount.com`,
+        }),
+        databaseURL: process.env.FIREBASE_DATABASE_URL,
+        storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+      });
     }
   }
   
