@@ -97,7 +97,7 @@ const updateTeacher = async (id, updateData) => {
     }
     
     // Add timestamp
-    updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+    updateData.updatedAt = firestore.FieldValue.serverTimestamp();
     
     // Update the document
     await teacherRef.update(updateData);
