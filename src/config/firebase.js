@@ -20,11 +20,15 @@ const initializeFirebase = () => {
       });
     } else {
       // For development
+      if (!process.env.FIREBASE_PRIVATE_KEY || !process.env.FIREBASE_CLIENT_EMAIL) {
+        throw new Error('Missing Firebase credentials. Please check your .env file includes FIREBASE_PRIVATE_KEY and FIREBASE_CLIENT_EMAIL');
+      }
+      
       firebaseApp = admin.initializeApp({
         credential: admin.credential.cert({
           projectId: process.env.FIREBASE_PROJECT_ID,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || 'dummy-key',
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL || `firebase-adminsdk-${process.env.FIREBASE_PROJECT_ID}@${process.env.FIREBASE_PROJECT_ID}.iam.gserviceaccount.com`,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
         }),
         databaseURL: process.env.FIREBASE_DATABASE_URL,
         storageBucket: process.env.FIREBASE_STORAGE_BUCKET

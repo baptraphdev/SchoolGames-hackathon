@@ -23,8 +23,17 @@ A RESTful API built with Node.js, Express, and Firestore for managing students a
    ```
    npm install
    ```
-3. Create a `.env` file based on `.env.example` and fill in your Firebase credentials
-4. Start the development server:
+3. Set up Firebase credentials:
+   - Go to your Firebase Console > Project Settings > Service Accounts
+   - Click "Generate New Private Key" to download your service account JSON file
+   - From the JSON file, copy the following values:
+     - `private_key`: Copy the entire private key including "-----BEGIN PRIVATE KEY-----" and "-----END PRIVATE KEY-----"
+     - `client_email`: Copy the service account email address
+4. Create a `.env` file based on `.env.example` and fill in your Firebase credentials:
+   - Set `FIREBASE_PRIVATE_KEY` to your private key (keep the quotes and \n characters)
+   - Set `FIREBASE_CLIENT_EMAIL` to your service account email
+   - Fill in the remaining Firebase configuration values
+5. Start the development server:
    ```
    npm run dev
    ```
