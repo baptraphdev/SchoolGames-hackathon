@@ -2,7 +2,6 @@ const { getFirestore } = require('../config/firebase');
 const { formatTeacher } = require('../models/Teacher');
 const { ApiError } = require('../middleware/errorHandler');
 const { v4: uuidv4 } = require('uuid');
-const admin = require('firebase-admin');
 
 // Reference to the Firestore collection
 const teachersCollection = async () => {
