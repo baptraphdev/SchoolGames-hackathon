@@ -22,31 +22,50 @@ const initializeFirebase = () => {
     }
 
     try {
-      // Initialize Firebase with proper error handling
+      // Handle the private key properly, ensuring correct format
+      const privateKey = process.env.FIREBASE_PRIVATE_KEY
+        ? JSON.parse(process.env.FIREBASE_PRIVATE_KEY)
+        : undefined;
+
+      if (!privateKey) {
+        throw new Error('Invalid FIREBASE_PRIVATE_KEY format');
+      }
+
       const credentials = {
         projectId: process.env.FIREBASE_PROJECT_ID,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        privateKey: privateKey,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       };
 
-      firebaseApp = admin.initializeApp({
-        credential: admin.credential.cert(credentials),
-        databaseURL: process.env.FIREBASE_DATABASE_URL,
-        storageBucket: process.env.FIREBASE_STORAGE_BUCKET
-      });
+      // Initialize Firebase with retry logic
+      const initializeWithRetry = async (retries = 3, delay = 2000) => {
+        try {
+          if (!firebaseApp) {
+            firebaseApp = admin.initializeApp({
+              credential: admin.credential.cert(credentials),
+              databaseURL: process.env.FIREBASE_DATABASE_URL,
+              storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+            });
+          }
 
-      // Test the connection
-      const db = admin.firestore();
-      return db.collection('_test_').get()
-        .then(() => {
+          // Test the connection
+          const db = admin.firestore();
+          await db.collection('_test_').get();
           console.log('Firebase connection established successfully');
           return firebaseApp;
-        })
-        .catch((error) => {
-          console.error('Failed to connect to Firebase:', error);
-          firebaseApp = null; // Reset the app instance so we can try to initialize again
+        } catch (error) {
+          if (retries > 0) {
+            console.log(`Retrying Firebase connection in ${delay}ms... (${retries} attempts remaining)`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return initializeWithRetry(retries - 1, delay * 1.5);
+          }
+          console.error('Failed to connect to Firebase after multiple attempts:', error);
+          firebaseApp = null;
           throw error;
-        });
+        }
+      };
+
+      return initializeWithRetry();
     } catch (error) {
       console.error('Error initializing Firebase:', error);
       throw error;
