@@ -24,7 +24,7 @@ const initializeFirebase = () => {
   }
 };
 
-const getFirestore = () => {
+const getFirestoreInstance = () => {
   if (!db) {
     throw new Error('Firebase must be initialized before getting Firestore instance');
   }
@@ -33,5 +33,5 @@ const getFirestore = () => {
 
 module.exports = {
   initializeFirebase,
-  getFirestore
+  getFirestoreInstance
 };
