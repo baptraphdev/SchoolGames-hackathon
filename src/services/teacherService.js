@@ -1,11 +1,12 @@
-const { getFirestore, FieldValue } = require('../config/firebase');
+const { getFirestoreInstance } = require('../config/firebase');
+const { FieldValue } = require('firebase/firestore');
 const { formatTeacher } = require('../models/Teacher');
 const { ApiError } = require('../middleware/errorHandler');
 const { v4: uuidv4 } = require('uuid');
 
 // Reference to the Firestore collection
 const teachersCollection = async () => {
-  const db = await getFirestore();
+  const db = await getFirestoreInstance();
   return db.collection('teachers');
 };
 
